@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Name: posPackDetails.xhtml
+    Summary: JSF page dedicated for poses and packages
+    Created by G.Atabaki on 92/04/22
+    Modofication History:    
+
+    1) On 92/04/31 by G.Atabaki
+        a) pack type is added.
+
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:f="http://java.sun.com/jsf/core"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:p="http://primefaces.prime.com.tr/ui"
+                xmlns:a4j="http://richfaces.org/a4j"
+                xmlns:rich="http://richfaces.org/rich"
+                xmlns:ext="http://java.sun.com/jsf/composite/extComponents"
+                template="/WEB-INF/templates/default.xhtml">
+    <ui:define name="content">
+        <h:inputHidden value="#{navigationMBean.meetPage('posPackDetails')}"/>
+
+        <f:view>
+            <h:form>                
+                <h2><h:outputText value="#{msg['caption.posPackDetails.posPackDetails']}" styleClass="title"/></h2>
+
+                <rich:panel id="firstPanel" rendered="#{permissionMBean.permittedPos_View}">
+                    <f:facet name="header">
+                        #{msg['caption.posPackDetails.posPackDetails']}
+                    </f:facet>
+
+                    <!-- ***************** POS-PACK INFO ******************* -->
+                    <h:panelGrid columns="3" styleClass="dataEntryPanel" columnClasses="labelColumn,dataEntryColumn,validationColumn">
+                        <ext:outputLabelExt value="#{msg['caption.posPackDetails.posDev']}" for="posDevId" styleClass="dataEntryItem" />                                                
+                        <h:selectOneMenu id="posDevId" value="#{posPackMBean.selectedPosDevId}" title="#{msg['hint.posPackDetails.hintPosDev']}" styleClass="dataEntryItem">
+                            <f:selectItems value="#{posPackMBean.posDevSelectionItems}"/>                           
+                        </h:selectOneMenu>  
+                        <h:messages layout="lineDirection" for="posDevId" styleClass="validationMessage" /> 
+
+                        <ext:outputLabelExt value="#{msg['caption.posPackDetails.posApp']}" for="posAppId" styleClass="dataEntryItem" />                                                
+                        <h:selectOneMenu id="posAppId" value="#{posPackMBean.selectedPosAppId}" title="#{msg['hint.posPackDetails.hintPosApp']}" 
+                                         validator="#{posPackMBean.posIdsValidator}"
+                                         styleClass="dataEntryItem">
+                            <f:selectItems value="#{posPackMBean.posAppSelectionItems}"/>                           
+                        </h:selectOneMenu>  
+                        <rich:message for="posAppId" styleClass="validationMessage" /> 
+
+                        <ext:outputLabelExt value="#{msg['caption.posPackDetails.scenario']}" for="scenario"
+                                            styleClass="dataEntryItem" required="true"/>
+                        <h:inputText id="scenario" value="#{posPackMBean.currentPos.scenario}"
+                                     title="#{msg['hint.posPackDetails.hintScenario']}"                                     
+                                     styleClass="dataEntryItem">
+                        </h:inputText>
+                        <rich:message for="scenario" styleClass="validationMessage" /> 
+
+                    </h:panelGrid>
+                    <br/>
+                    <!-- ****************** POS BUTTONS ************** -->
+                    <a4j:commandButton value="#{msg['caption.posPackDetails.saveChanges']}"  execute="firstPanel" action="#{posPackMBean.uiActionUpdatePos()}" 
+                                       styleClass="majorButton" rendered="#{permissionMBean.permittedPos_Update}"/>
+                    <a4j:commandButton value="#{msg['caption.posPackDetails.removePos']}" styleClass="majorButton" render="dependencyPane" 
+                                       action="#{posPackMBean.checkDependencyOnRemovePos()}" execute="@this" rendered="#{permissionMBean.permittedPos_Remove}"
+                                       oncomplete="if (#{posPackMBean.dependencyResultOfRemovePos==null}) {#{rich:component('confirmRemovePosPane')}.show();}
+                                       else {#{rich:component('dependencyPane')}.show();}" />
+                    <a4j:commandButton value="#{msg['caption.posPackDetails.backToPosPacks']}" execute="@this" bypassUpdates="true" action="#{posPackMBean.back}" styleClass="majorButton"/>                                        
+                </rich:panel>
+                <br/>
+                <!-- ******************** PACKS INFO ********************* -->
+                <rich:panel rendered="#{posPackMBean.packsVisible and permissionMBean.permittedPos_Pack_View}">
+                    <f:facet name="header">
+                        #{msg['caption.posPackDetails.packs']}
+                    </f:facet>
+
+<!--                    <h3><h:outputText value="#{msg['caption.posPackDetails.amounts']}" styleClass="title"/></h3>-->
+
+                    <!--  ******************* PACKS TABLE **************** -->
+                    <rich:dataTable value="#{posPackMBean.packs}" 
+                                    rendered="#{not empty posPackMBean.packs}"
+                                    var="item" iterationStatusVar="it" id="table" rows="10">
+                        <rich:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{msg['caption.posPackDetails.packName']}" styleClass="majorTableItem"/>
+                            </f:facet>                            
+                            <h:outputText value="#{item.packName}"  styleClass="majorTableItem"/>
+                        </rich:column>
+                        <rich:column>
+                            <f:facet name="header">
+                                <h:outputText value="#{msg['caption.posPackDetails.packType']}" styleClass="majorTableItem"/>
+                            </f:facet>                            
+                            <h:outputText value="#{item.packType.name}"  styleClass="majorTableItem"/>
+                        </rich:column>                                     
+                        <rich:column rendered="#{permissionMBean.permittedPos_Pack_Update or permissionMBean.permittedPos_Pack_Remove}">
+                            <a4j:commandLink styleClass="no-decor" execute="@this" title="#{msg['hint.posPackDetails.hintLinkRemove']}"
+                                             render="@none" oncomplete="#{rich:component('confirmRemovePackPane')}.show()"
+                                             rendered="#{permissionMBean.permittedPos_Pack_Remove}">
+                                <h:graphicImage value="/images/icons/delete.gif" />
+                                <f:setPropertyActionListener target="#{posPackMBean.currentPosPack}"
+                                                             value="#{item}" />
+                            </a4j:commandLink>
+                            <a4j:commandLink styleClass="no-decor" execute="@this" title="#{msg['hint.posPackDetails.hintLinkEdit']}"
+                                             render="editPane" oncomplete="#{rich:component('editPane')}.show()"
+                                             rendered="#{permissionMBean.permittedPos_Pack_Update}">
+                                <h:graphicImage value="/images/icons/edit.gif" />
+                                <f:setPropertyActionListener target="#{posPackMBean.currentPosPack}"
+                                                             value="#{item}" />
+                            </a4j:commandLink>
+                        </rich:column>
+                        <f:facet name="footer">
+                            <rich:dataScroller page="1" />
+                        </f:facet>
+                    </rich:dataTable>
+                    <h:outputText value="#{msg['msg.posPackDetails.noPackMessage']}" 
+                                  rendered="#{empty posPackMBean.packs}" />
+                    <br/>
+
+                    <!-- ***************** PACKS BUTTONS ***************** -->
+                    <a4j:commandButton value="#{msg['caption.posPackDetails.addNewPack']}" execute="@this" action="#{posPackMBean.uiActionAddNewPosPack()}"
+                                       render="addPane" oncomplete="#{rich:component('addPane')}.show()" styleClass="majorButton" 
+                                       rendered="#{permissionMBean.permittedPos_Pack_Add}">
+                    </a4j:commandButton>
+                    <a4j:commandButton value="#{msg['caption.posPackDetails.removeAllPacks']}" execute="@this"
+                                       onclick="#{rich:component('confirmRemoveAllPacksPane')}.show();"                                       
+                                       styleClass="majorButton" rendered="#{not empty posPackMBean.packs and permissionMBean.permittedPos_Pack_Remove}" >
+                    </a4j:commandButton>                 
+                </rich:panel>
+                <!-- **************** POPUP PANELS: ************ -->
+
+                <!-- *************** 1) CONFIRM REMOVE POS PANEL ************ -->                                
+                <rich:popupPanel id="confirmRemovePosPane" autosized="true" >
+                    <h:outputText value="#{msg['msg.posPackDetails.confirmRemovePosMessage']}" styleClass="panelMessage" style="font-size: 14px"/>
+                    <br/><br/>
+                    <a4j:commandButton value="#{msg['caption.common.yes']}" onclick="removePos(); return false;" 
+                                       rendered="#{permissionMBean.permittedPos_Remove}"/>
+                    <a4j:commandButton value="#{msg['caption.common.no']}"
+                                       onclick="#{rich:component('confirmRemovePosPane')}.hide(); return false;" />  
+
+                    <a4j:jsFunction name="removePos" action="#{posPackMBean.uiActionRemovePos()}"
+                                    render="table" execute="@this"
+                                    oncomplete="#{rich:component('confirmRemovePosPane')}.hide();" />
+                </rich:popupPanel>
+
+                <!-- *************** 2)CONFIRM REMOVE PACK PANEL ************ -->
+                <rich:popupPanel id="confirmRemovePackPane" autosized="true">
+                    <h:outputText value="#{msg['msg.posPackDetails.confirmRemovePackMessage']}" styleClass="panelMessage" style="font-size: 14px"/>
+                    <br/><br/>
+                    <a4j:commandButton value="#{msg['caption.common.yes']}" onclick="removePosPack(); return false;" 
+                                       rendered="#{permissionMBean.permittedPos_Pack_Remove}"/>
+                    <a4j:commandButton value="#{msg['caption.common.no']}"
+                                       onclick="#{rich:component('confirmRemovePackPane')}.hide(); return false;" />  
+
+                    <a4j:jsFunction name="removePosPack" action="#{posPackMBean.uiActionRemovePosPack()}"
+                                    render="table" execute="@this"
+                                    oncomplete="#{rich:component('confirmRemovePackPane')}.hide();" />
+                </rich:popupPanel>   
+
+                <!-- *************** 3)CONFIRM REMOVE_ALL PACKS PANEL ******** -->
+                <rich:popupPanel id="confirmRemoveAllPacksPane" autosized="true">
+                    <h:outputFormat value="#{msg['msg.posPackDetails.confirmRemoveAllPacksMessage']}" styleClass="panelMessage" style="font-size: 14px"/>
+                    <br/><br/>
+                    <a4j:commandButton value="#{msg['caption.common.yes']}" onclick="removeAllPacks(); return false;" 
+                                       rendered="#{permissionMBean.permittedPos_Pack_Remove}"/>
+                    <a4j:commandButton value="#{msg['caption.common.no']}"
+                                       onclick="#{rich:component('confirmRemoveAllPacksPane')}.hide(); return false;" />                       
+                </rich:popupPanel>
+                <a4j:jsFunction name="removeAllPacks" action="#{posPackMBean.uiActionRemoveAllPosPacks()}"
+                                render="table" execute="@this"
+                                oncomplete="#{rich:component('confirmRemoveAllPacksPane')}.hide();" />
+
+                <!-- *************** 4)EDIT PACK PANEL ************** -->
+                <rich:popupPanel header="#{msg['caption.posPackDetails.editPack']}" id="editPane" domElementAttachment="parent" autosized="true">
+                    <h:panelGrid columns="3" id="editGrid" columnClasses=",,validationColumn" >
+                        <ext:outputLabelExt value="#{msg['caption.posPackDetails.packName']}" required="true"/>
+                        <h:inputText id="editPackName" value="#{posPackMBean.currentPosPack.packName}" style="width: 250px"
+                                     label="Pack" styleClass="dataEntryItem" validator="#{posPackMBean.packNameValidator}">                                                                                          
+                        </h:inputText>                           
+                        <rich:message for="editPackName"/>
+
+                        <ext:outputLabelExt value="#{msg['caption.posPackDetails.packType']}" required="true" />                                                
+                        <h:selectOneMenu id="editPackType" value="#{posPackMBean.selectedPackType}" title="#{msg['hint.posPackDetails.hintPackType']}"                                          
+                                         styleClass="dataEntryItem">
+                            <f:selectItems value="#{posPackMBean.packTypeSelectionItems}"/>                           
+                        </h:selectOneMenu>  
+                        <rich:message for="editPackType" styleClass="validationMessage" />
+                    </h:panelGrid>                        
+                    <br/>
+                    <a4j:commandButton value="#{msg['caption.posPackDetails.store']}" rendered="#{permissionMBean.permittedPos_Pack_Update}"
+                                       onclick="editPackName(); return false;" />
+
+                    <a4j:commandButton value="#{msg['caption.common.Cancel']}" bypassUpdates="true"
+                                       onclick="#{rich:component('editPane')}.hide(); return false;" />
+                </rich:popupPanel>
+                <a4j:jsFunction name="editPackName" action="#{posPackMBean.uiActionUpdatePosPack}"
+                                render="table" execute="editPane"
+                                oncomplete="if (#{facesContext.maximumSeverity==null}) {#{rich:component('editPane')}.hide();}" />
+
+                <!-- *************** 4)ADD PACK PANEL ************* -->
+                <rich:popupPanel  header="#{msg['caption.posPackDetails.addNewPackName']}" id="addPane"  domElementAttachment="parent" autosized="true">
+                    <h:panelGrid columns="3" id="addGrid" columnClasses=",,validationColumn">
+                        <ext:outputLabelExt value="#{msg['caption.posPackDetails.packName']}" required="true"/>
+                        <h:inputText  id="addPackName" value="#{posPackMBean.currentPosPack.packName}"
+                                      validator="#{posPackMBean.packNameValidator}" style="width: 250px"
+                                      label="PackName" styleClass="dataEntryItem">                                                            
+                        </h:inputText>   
+                        <rich:message for="addPackName"/>
+                        <ext:outputLabelExt value="#{msg['caption.posPackDetails.packType']}" required="true" />                                                
+                        <h:selectOneMenu id="addPackType" value="#{posPackMBean.selectedPackType}" title="#{msg['hint.posPackDetails.hintPackType']}"                                          
+                                         styleClass="dataEntryItem">
+                            <f:selectItems value="#{posPackMBean.packTypeSelectionItems}"/>                           
+                        </h:selectOneMenu>  
+                        <rich:message for="addPackType" styleClass="validationMessage" />
+                    </h:panelGrid>
+                    <br/>
+                    <a4j:commandButton value="#{msg['caption.posPackDetails.add']}" action="#{posPackMBean.uiActionUpdatePosPack()}"
+                                       render="table" execute="addPane" rendered="#{permissionMBean.permittedPos_Pack_Add}"
+                                       oncomplete="if (#{facesContext.maximumSeverity==null}) {#{rich:component('addPane')}.hide();}" >
+                    </a4j:commandButton>
+                    <a4j:commandButton value="#{msg['caption.common.Cancel']}" bypassUpdates="true"
+                                       onclick="#{rich:component('addPane')}.hide(); return false;">
+                    </a4j:commandButton>
+                </rich:popupPanel>                  
+                <!-- **************** DEPENDENCY PANEL ************** -->                                
+                <rich:popupPanel header="" id="dependencyPane" domElementAttachment="parent" autosized="true">                    
+                    <h:outputFormat value="#{msg['msg.posPackDetails.dependencyResultOfRemovePos']}" styleClass="filterItem">
+                        <f:param value="#{posPackMBean.dependencyResultOfRemovePos}"/>                                            
+                    </h:outputFormat>
+                    <br/><br/>
+                    <a4j:commandButton value="#{msg['caption.common.Cancel']}" 
+                                       onclick="#{rich:component('dependencyPane')}.hide(); return false;" />                  
+                </rich:popupPanel>
+
+                <br/><br/>
+
+            </h:form> 
+        </f:view>
+    </ui:define>
+</ui:composition>

@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Name: posAppList.xhtml
+    Task Summary: the page contains list of pos applications
+    Created by G.Atabaki 93/11/13
+
+    Modification History: 
+
+-->
+
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:f="http://java.sun.com/jsf/core"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:a4j="http://richfaces.org/a4j"
+                xmlns:rich="http://richfaces.org/rich"
+                xmlns:ext="http://java.sun.com/jsf/composite/extComponents"
+                xmlns:c="http://java.sun.com/jsp/jstl/core"
+                template="/WEB-INF/templates/default.xhtml">
+    <ui:define name="content">
+        <h:inputHidden value="#{navigationMBean.meetPage('posAppList')}"/>
+
+        <h2><h:outputText value="#{msg['caption.posAppList.title']}" styleClass="title"/></h2>
+
+        <f:view>
+            <h:form>
+                <rich:collapsiblePanel header="#{msg['caption.posAppList.searchPanel']}" switchType="client" expanded="#{generalMBean.validationFailed}">
+
+                    <h:graphicImage value="/resources/images/search.jpg" style="float:left" rendered="#{language.right2Left}" />
+                    <h:graphicImage value="/resources/images/search.jpg" style="float:right" rendered="#{!language.right2Left}" />
+
+                    <!-- ******************* Filter ********************* -->
+                    <h:outputText value="#{msg['caption.posAppList.filtersTitle']}" styleClass="filterItem"/>
+                    <br/><br/>
+                    <h:panelGroup id="filterPanelPosApp">
+                        <h:panelGrid columns="3" styleClass="filterPanel"  columnClasses=",,validationMessage">
+
+                            <h:outputLabel value="#{msg['caption.posAppList.codeEquals']}" styleClass="filterItem"/>
+                            <h:inputText id="filterOnCode" value="#{posAppMBean.filterOnCode}" 
+                                         validator ="#{generalMBean.filteringValidator}"
+                                         title="#{msg['hint.posAppList.hintCodeEquals']}" styleClass="filterItem" />
+                            <h:message for="filterOnCode"/>
+
+                            <h:outputLabel value="#{msg['caption.posAppList.nameContains']}" styleClass="filterItem"/>
+                            <h:inputText id="filterOnName" value="#{posAppMBean.filterOnName}" 
+                                         validator ="#{generalMBean.filteringValidator}"
+                                         title="#{msg['hint.posAppList.hintNameContains']}" styleClass="filterItem" />
+                            <h:message for="filterOnName"/>
+
+                        </h:panelGrid>
+                        <br/>
+                        <a4j:commandButton id="filter" value="#{msg['caption.posAppList.filterPosApplication']}" execute="filterPanelPosApp" action="#{posAppMBean.filter}" title="#{msg['hint.posAppList.hintBtnFilterPosApplication']}" render="filterPanelPosApp" styleClass="filterButton"/>
+                        <a4j:commandButton id="clearFilter" value="#{msg['caption.posAppList.showAllPosApplications']}" action="#{posAppMBean.clearFilter}" title="#{msg['hint.posAppList.hintShowAllPosApplications']}" 
+                                           styleClass="filterButton" bypassUpdates="true"  execute="filterPanelPosApp"/>                    
+                    </h:panelGroup>
+                    <br/><br/>
+
+                </rich:collapsiblePanel>
+                <br/><br/>
+                <!-- ******************* PosApp Info ********************* -->                
+                <h:panelGroup id="listPanelGroup" rendered="#{permissionMBean.permittedPos_App_View}">
+<!--                    <h2><h:outputText value="#{msg['caption.posAppList.listTitle']}" styleClass="title"/></h2>-->
+
+                    <!--  ****************** PosApp Table **************** -->
+                    <rich:dataTable id="posAppsDataTable" value="#{posAppMBean.posApps}"  rendered="#{not empty posAppMBean.posApps}"
+                                    var="item"  rows="10" iterationStatusVar="it" >
+                        <rich:column>
+                            <f:facet name="header">#</f:facet>
+                            #{it.index+1}
+                        </rich:column>
+                        <rich:column sortBy="#{item.code}" sortOrder="#{posAppMBean.codeOrder}">
+                            <f:facet name="header">
+                                <a4j:commandLink value="#{msg['caption.posAppList.columnCode']}" render="posAppsDataTable"
+                                                 action="#{posAppMBean.sortByCode}"  styleClass="majorTableItem"
+                                                 title="#{msg['hint.posAppList.hintLinkSortByCode']}"/>
+                            </f:facet>
+                            <h:outputText value="#{item.code}" title="#{msg['hint.posAppList.hintLinkModify']}" styleClass="majorTableItem"/>
+                        </rich:column>
+                        <rich:column sortBy="#{item.name}" sortOrder="#{posAppMBean.nameOrder}">
+                            <f:facet name="header">
+                                <a4j:commandLink value="#{msg['caption.posAppList.columnName']}" render="posAppsDataTable"
+                                                 action="#{posAppMBean.sortByName}"  styleClass="majorTableItem"
+                                                 title="#{msg['hint.posAppList.hintLinkSortByName']}" />
+                            </f:facet>
+                            <h:outputText value="#{item.name}" styleClass="majorTableItem"/>
+                        </rich:column>
+                        <rich:column rendered="#{permissionMBean.permittedPos_App_Remove or permissionMBean.permittedPos_App_Update}">
+                            <a4j:commandLink styleClass="no-decor"  execute="@this" render="dependencyPane"  title="#{msg['hint.posAppList.hintLinkRemove']}"                                          
+                                             action="#{posAppMBean.checkDependencyOnRemove}" rendered="#{permissionMBean.permittedPos_App_Remove}"
+                                             oncomplete="if (#{posAppMBean.dependencyResultOfRemove==null}) {#{rich:component('confirmRemovePane')}.show();}
+                                             else {#{rich:component('dependencyPane')}.show();}" >
+                                <h:graphicImage value="/images/icons/delete.gif" />
+                                <f:setPropertyActionListener target="#{posAppMBean.currentPosApp}"
+                                                             value="#{item}" />
+                                <f:setPropertyActionListener target="#{isDependencyForRemoveAll}" value="false"/> 
+                            </a4j:commandLink>
+                            <a4j:commandLink styleClass="no-decor" execute="@this" rendered="#{permissionMBean.permittedPos_App_Update}" 
+                                             title="#{msg['hint.posAppList.hintLinkEdit']}"
+                                             render="editPane" oncomplete="#{rich:component('editPane')}.show()">
+                                <h:graphicImage value="/images/icons/edit.gif" />
+                                <f:setPropertyActionListener target="#{posAppMBean.currentPosApp}"
+                                                             value="#{item}" />
+                            </a4j:commandLink>
+                        </rich:column>
+                        <f:facet name="footer">
+                            <rich:dataScroller page="1" />
+                        </f:facet>
+                    </rich:dataTable>                    
+
+                    <br/>      
+                    <c:choose>
+                        <c:when test="${posAppMBean.numOfPosApps==0}">
+                            <h:outputFormat value="#{msg['msg.posAppList.noPosApplicationExists']}" styleClass="filterItem">                                               
+                            </h:outputFormat>
+                        </c:when>
+                        <c:when test="${posAppMBean.numOfPosApps==1}">
+                            <h:outputFormat value="#{msg['msg.posAppList.onePosApplicationExists']}" styleClass="filterItem">                            
+                            </h:outputFormat>
+                        </c:when>
+                        <c:when test="${posAppMBean.numOfPosApps>1}">
+                            <h:outputFormat value="#{msg['msg.posAppList.manyPosApplicationsExist']}" styleClass="filterItem">
+                                <f:param value="#{posAppMBean.numOfPosApps}"/>                    
+                            </h:outputFormat>
+                        </c:when>
+                    </c:choose>                    
+                    <br/><br/>                    
+                    <a4j:commandButton value="#{msg['caption.posAppList.buttonAddNew']}" execute="@this" action="#{posAppMBean.uiActionAddNewPosApp()}"
+                                       title="#{msg['hint.posAppList.hintBtnAddNew']}" styleClass="majorButton" rendered="#{permissionMBean.permittedPos_App_Add}"
+                                       render="addPane" oncomplete="#{rich:component('addPane')}.show()"  />
+                    <a4j:commandButton value="#{msg['caption.posAppList.removeAllPosApplications']}" title="#{msg['hint.posAppList.hintBtnRemoveAll']}"
+                                       render="dependencyPane" execute="@this"
+                                       oncomplete="if (#{posAppMBean.checkDependencyOnRemoveAll()}) {#{rich:component('confirmRemoveAllPane')}.show();}
+                                       else {#{rich:component('dependencyPane')}.show();}"
+                                       styleClass="majorButton" rendered="#{(permissionMBean.permittedPos_App_Remove) and (not empty posAppMBean.posApps)}">
+                        <f:setPropertyActionListener target="#{isDependencyForRemoveAll}" value="true"/>                        
+                    </a4j:commandButton>                  
+                </h:panelGroup>
+
+                <!-- ************** POSDEV POPUP PANELS: ************* -->
+
+                <!-- ********** 1)CONFIRM REMOVE POSDEV PANEL ********* -->
+
+                <rich:popupPanel id="confirmRemovePane" autosized="true">
+                    <h:outputText value="#{msg['msg.posAppList.confirmRemovePosApplicationMessage']}" styleClass="panelMessage" style="font-size: 14px"/>
+                    <br/><br/>
+                    <a4j:commandButton value="#{msg['caption.common.yes']}" onclick="removePosApp(); return false;" />
+                    <a4j:commandButton value="#{msg['caption.common.no']}"
+                                       onclick="#{rich:component('confirmRemovePane')}.hide(); return false;" />                    
+                </rich:popupPanel>
+                <a4j:jsFunction name="removePosApp" action="#{posAppMBean.uiActionRemovePosApp()}"
+                                render="table" execute="@this"
+                                oncomplete="#{rich:component('confirmRemovePane')}.hide();" />
+
+                <!-- ******* 2)CONFIRM REMOVE_ALL POSDEV PANEL ******* -->
+                <rich:popupPanel id="confirmRemoveAllPane" autosized="true">
+                    <h:outputText value="#{msg['msg.posAppList.confirmRemoveAllPosApplicationsMessage']}" styleClass="panelMessage" style="font-size: 14px"/>
+                    <br/><br/>
+                    <a4j:commandButton value="#{msg['caption.common.yes']}" onclick="removeAllPosApps(); return false;" />
+                    <a4j:commandButton value="#{msg['caption.common.no']}"
+                                       onclick="#{rich:component('confirmRemoveAllPane')}.hide(); return false;" />                   
+                </rich:popupPanel>
+                <a4j:jsFunction name="removeAllPosApps" action="#{posAppMBean.uiActionRemoveAllPosApps()}"
+                                render="table" execute="@this"
+                                oncomplete="#{rich:component('confirmRemoveAllPane')}.hide();" />
+
+                <!-- *************** 3)EDIT POSDEV PANEL ************** -->
+                <rich:popupPanel header="#{msg['caption.posAppList.editPosApplication']}" id="editPane" domElementAttachment="parent" autosized="true">
+                    <h:panelGrid columns="3" id="editGrid" columnClasses=",,validationColumn">
+                        <ext:outputLabelExt value="#{msg['caption.posAppList.posApplicationCode']}" required="true"/>
+                        <h:inputText id="editPosAppCode" value="#{posAppMBean.currentPosApp.code}"
+                                     styleClass="dataEntryItem" validator="#{posAppMBean.codeValidator}">
+                            <f:converter converterId="com.isc.tms.converter.Code" />
+                        </h:inputText>
+                        <rich:message for="editPosAppCode"/>
+
+                        <ext:outputLabelExt value="#{msg['caption.posAppList.posApplicationName']}" required="true"/>
+                        <h:inputText id="editPosAppName" value="#{posAppMBean.currentPosApp.name}"
+                                     styleClass="dataEntryItem" validator="#{posAppMBean.nameValidator}">
+                        </h:inputText>
+                        <rich:message for="editPosAppName"/>
+
+                    </h:panelGrid>
+
+                    <br/>
+                    <a4j:commandButton value="#{msg['caption.posAppList.store']}"
+                                       onclick="editPosApp(); return false;" />
+                    <a4j:commandButton value="#{msg['caption.common.Cancel']}" bypassUpdates="true"
+                                       onclick="#{rich:component('editPane')}.hide(); return false;" />
+                </rich:popupPanel>
+                <a4j:jsFunction name="editPosApp" action="#{posAppMBean.uiActionUpdatePosApp()}"
+                                render="table" execute="editPane"
+                                oncomplete="if (#{facesContext.maximumSeverity==null}) {#{rich:component('editPane')}.hide();}" />
+
+                <!-- *************** 4)ADD POSDEV PANEL ************* -->
+
+                <rich:popupPanel  header="#{msg['caption.posAppList.addNewPosApplication']}" id="addPane"  domElementAttachment="parent" autosized="true">
+                    <h:panelGrid columns="3" id="addGrid" columnClasses=",,validationColumn">
+                        <ext:outputLabelExt value="#{msg['caption.posAppList.posApplicationCode']}" required="true"/>
+                        <h:inputText  id="addPosAppCode"  value="#{posAppMBean.currentPosApp.code}"
+                                      styleClass="dataEntryItem" validator="#{posAppMBean.codeValidator}">
+                            <f:converter converterId="com.isc.tms.converter.Code" />
+                        </h:inputText>
+                        <rich:message for="addPosAppCode"/>
+
+                        <ext:outputLabelExt value="#{msg['caption.posAppList.posApplicationName']}" required="true"/>
+                        <h:inputText id="addPosAppName" value="#{posAppMBean.currentPosApp.name}"
+                                     styleClass="dataEntryItem" validator="#{posAppMBean.nameValidator}">
+                        </h:inputText>
+                        <rich:message for="addPosAppName"/>
+
+                    </h:panelGrid>
+                    <br/>
+                    <a4j:commandButton value="#{msg['caption.posAppList.add']}" action="#{posAppMBean.uiActionUpdatePosApp()}"
+                                       render="table" execute="addPane"
+                                       oncomplete="if (#{facesContext.maximumSeverity==null}) {#{rich:component('addPane')}.hide();}" >
+                    </a4j:commandButton>
+                    <a4j:commandButton value="#{msg['caption.common.Cancel']}" execute="addPane" 
+                                       onclick="#{rich:component('addPane')}.hide();" >
+                    </a4j:commandButton>
+
+                </rich:popupPanel>
+
+                <!-- **************** 5)DEPENDENCY PANEL ************** -->
+                <rich:popupPanel header="" id="dependencyPane" domElementAttachment="parent" autosized="true">
+                    <c:choose>
+                        <c:when test="${isDependencyForRemoveAll==true}">                            
+                            <h:outputFormat value="#{msg['msg.posAppList.dependencyResultOfRemoveAll']}" styleClass="filterItem">
+                                <f:param value="#{posAppMBean.dependencyResultOfRemoveAll.first}"/>
+                                <f:param value="#{posAppMBean.dependencyResultOfRemoveAll.second}"/>               
+                            </h:outputFormat>
+                        </c:when>
+                        <c:when test="${isDependencyForRemoveAll==false}">                            
+                            <h:outputFormat value="#{msg['msg.posAppList.dependencyResultOfRemove']}" styleClass="filterItem">
+                                <f:param value="#{posAppMBean.dependencyResultOfRemove}"/>                                            
+                            </h:outputFormat>
+                        </c:when>
+                    </c:choose>                        
+                    <br/><br/>
+                    <a4j:commandButton value="#{msg['caption.common.Cancel']}"
+                                       onclick="#{rich:component('dependencyPane')}.hide(); return false;" />               
+                </rich:popupPanel>                
+            </h:form>
+        </f:view>
+
+    </ui:define>
+</ui:composition>
